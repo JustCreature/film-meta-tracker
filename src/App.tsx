@@ -68,7 +68,7 @@ function App() {
       cameras,
       exposures,
       settings,
-      currentScreen: filmRolls.length > 0 ? 'filmrolls' : 'setup'
+      currentScreen: 'filmrolls' // Always show main screen with film rolls tab
     }));
 
     // Initialize sync manager
