@@ -10,6 +10,7 @@ const useHttps = fs.existsSync(certKeyPath) && fs.existsSync(certPath)
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/film-meta-tracker/' : '/',
   server: {
     ...(useHttps ? {
       https: {
@@ -57,8 +58,8 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: process.env.NODE_ENV === 'production' ? '/film-meta-tracker/' : '/',
+        start_url: process.env.NODE_ENV === 'production' ? '/film-meta-tracker/' : '/',
         icons: [
           {
             src: 'pwa-192x192.png',
