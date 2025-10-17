@@ -3,13 +3,20 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
 
+// Check if SSL certificates exist (for local development only)
+const certKeyPath = './localhost+4-key.pem'
+const certPath = './localhost+4.pem'
+const useHttps = fs.existsSync(certKeyPath) && fs.existsSync(certPath)
+
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    https: {
-      key: fs.readFileSync('./localhost+4-key.pem'),
-      cert: fs.readFileSync('./localhost+4.pem')
-    },
+    ...(useHttps ? {
+      https: {
+        key: fs.readFileSync(certKeyPath),
+        cert: fs.readFileSync(certPath)
+      }
+    } : {}),
     host: true
   },
   plugins: [
