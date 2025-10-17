@@ -21,7 +21,8 @@ import {
     LocationOn,
     AccessTime,
     Save,
-    Close
+    Close,
+    Delete
 } from '@mui/icons-material';
 import { camera, fileUtils } from '../utils/camera';
 import type { Exposure } from '../types';
@@ -29,12 +30,14 @@ import type { Exposure } from '../types';
 interface DetailsScreenProps {
     exposure: Exposure;
     onExposureUpdate: (exposure: Exposure) => void;
+    onExposureDelete?: (exposureId: string) => void;
     onBack: () => void;
 }
 
 export const DetailsScreen: React.FC<DetailsScreenProps> = ({
     exposure,
     onExposureUpdate,
+    onExposureDelete,
     onBack
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +64,18 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
     const handleCancel = () => {
         setEditedExposure(exposure);
         setIsEditing(false);
+    };
+
+    const handleDelete = () => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete exposure #${exposure.exposureNumber}?\n\n` +
+            'This action cannot be undone and you will be taken back to the gallery.'
+        );
+
+        if (confirmed && onExposureDelete) {
+            onExposureDelete(exposure.id);
+            onBack(); // Navigate back to gallery after deletion
+        }
     };
 
     const handleImageChange = async (file: File) => {
@@ -110,9 +125,22 @@ export const DetailsScreen: React.FC<DetailsScreenProps> = ({
                         Exposure #{exposure.exposureNumber}
                     </Typography>
                 </Box>
-                <IconButton onClick={() => setIsEditing(!isEditing)} color="primary">
-                    <Edit />
-                </IconButton>
+                <Box display="flex" alignItems="center" gap={1}>
+                    <IconButton onClick={() => setIsEditing(!isEditing)} color="primary">
+                        <Edit />
+                    </IconButton>
+                    {onExposureDelete && (
+                        <IconButton
+                            onClick={handleDelete}
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': { color: 'error.main' }
+                            }}
+                        >
+                            <Delete />
+                        </IconButton>
+                    )}
+                </Box>
             </Box>
 
             <Box sx={{ flex: 1, overflowY: 'auto' }}>

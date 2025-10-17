@@ -269,6 +269,16 @@ function App() {
     }));
   };
 
+  const handleExposureDelete = (exposureId: string) => {
+    storage.deleteExposure(exposureId);
+
+    setAppState(prev => ({
+      ...prev,
+      exposures: prev.exposures.filter(e => e.id !== exposureId),
+      selectedExposure: prev.selectedExposure?.id === exposureId ? null : prev.selectedExposure
+    }));
+  };
+
   const handlePwaUpdate = () => {
     // Ask for confirmation to ensure user wants to update
     const confirmed = window.confirm(
@@ -390,6 +400,7 @@ function App() {
             filmRoll={appState.currentFilmRoll}
             exposures={appState.exposures}
             onExposureSelect={(exposure) => navigateToScreen('details', exposure)}
+            onExposureDelete={handleExposureDelete}
             onBack={() => navigateToScreen('camera')}
             onDataImported={handleDataImported}
           />
@@ -401,6 +412,7 @@ function App() {
           <DetailsScreen
             exposure={appState.selectedExposure}
             onExposureUpdate={handleExposureUpdate}
+            onExposureDelete={handleExposureDelete}
             onBack={() => navigateToScreen('gallery')}
           />
         );

@@ -32,7 +32,8 @@ import {
     FolderOpen,
     Save,
     Share,
-    Close
+    Close,
+    Delete
 } from '@mui/icons-material';
 import type { Exposure, FilmRoll } from '../types';
 import { exportUtils, googleDriveUtils } from '../utils/exportImport';
@@ -42,6 +43,7 @@ interface GalleryScreenProps {
     filmRoll: FilmRoll;
     exposures: Exposure[];
     onExposureSelect: (exposure: Exposure) => void;
+    onExposureDelete?: (exposureId: string) => void;
     onBack: () => void;
     onDataImported?: (filmRoll: FilmRoll, exposures: Exposure[]) => void;
 }
@@ -50,6 +52,7 @@ export const GalleryScreen: React.FC<GalleryScreenProps> = ({
     filmRoll,
     exposures,
     onExposureSelect,
+    onExposureDelete,
     onBack,
     onDataImported
 }) => {
@@ -149,6 +152,17 @@ export const GalleryScreen: React.FC<GalleryScreenProps> = ({
 
         // Clear the input
         event.target.value = '';
+    };
+
+    const handleDeleteExposure = (exposureId: string, exposureNumber: number) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete exposure #${exposureNumber}?\n\n` +
+            'This action cannot be undone.'
+        );
+
+        if (confirmed && onExposureDelete) {
+            onExposureDelete(exposureId);
+        }
     };
 
     const formatDateTime = (date: Date) => {
@@ -281,10 +295,27 @@ export const GalleryScreen: React.FC<GalleryScreenProps> = ({
                                             <Typography variant="h6" fontWeight="bold">
                                                 #{exposure.exposureNumber}
                                             </Typography>
-                                            <Typography variant="caption" color="text.secondary" display="flex" alignItems="center">
-                                                <AccessTime sx={{ fontSize: 14, mr: 0.5 }} />
-                                                {formatDateTime(exposure.capturedAt)}
-                                            </Typography>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                                <Typography variant="caption" color="text.secondary" display="flex" alignItems="center">
+                                                    <AccessTime sx={{ fontSize: 14, mr: 0.5 }} />
+                                                    {formatDateTime(exposure.capturedAt)}
+                                                </Typography>
+                                                {onExposureDelete && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteExposure(exposure.id, exposure.exposureNumber);
+                                                        }}
+                                                        sx={{
+                                                            color: 'text.secondary',
+                                                            '&:hover': { color: 'error.main' }
+                                                        }}
+                                                    >
+                                                        <Delete fontSize="small" />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
                                         </Box>
 
                                         <Stack direction="row" spacing={1} mb={1}>
