@@ -1,0 +1,41 @@
+{
+    "filmRoll": {
+        "id": "1697123456789",
+        "name": "Kodak Portra 400",
+        "iso": 400,
+        "totalExposures": 36,
+        "createdAt": "2025-10-13T19:00:00.000Z"
+    },
+    "exposures": [
+        {
+            "id": "1697123456790",
+            "filmRollId": "1697123456789",
+            "exposureNumber": 1,
+            "aperture": "f/8",
+            "shutterSpeed": "1/125",
+            "additionalInfo": "Golden hour portrait shot",
+            "imageName": "exposure_1_1697123456790.jpg",
+            "location": {
+                "latitude": 37.7749,
+                "longitude": -122.4194
+            },
+            "capturedAt": "2025-10-13T19:15:00.000Z"
+        },
+        {
+            "id": "1697123456791",
+            "filmRollId": "1697123456789",
+            "exposureNumber": 2,
+            "aperture": "f/5.6",
+            "shutterSpeed": "1/60",
+            "additionalInfo": "Street photography",
+            "imageName": "exposure_2_1697123456791.jpg",
+            "location": {
+                "latitude": 37.7849,
+                "longitude": -122.4094
+            },
+            "capturedAt": "2025-10-13T19:30:00.000Z"
+        }
+    ],
+    "exportedAt": "2025-10-13T20:00:00.000Z",
+    "version": "1.0.0"
+}
