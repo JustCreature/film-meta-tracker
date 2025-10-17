@@ -126,6 +126,11 @@ export class GoogleDriveService {
         }
     }
 
+    private isStandaloneMode(): boolean {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+            (window.navigator as any).standalone === true;
+    }
+
     async authenticate(): Promise<string> {
         if (!this.settings.clientId || !this.settings.apiKey) {
             throw new Error('Both Client ID and API Key are required');
@@ -134,28 +139,115 @@ export class GoogleDriveService {
         try {
             await this.initializeAuth();
 
-            return new Promise((resolve, reject) => {
-                if (!this.tokenClient) {
-                    reject(new Error('Token client not initialized'));
-                    return;
-                }
-
-                // Set up callback for token response
-                this.tokenClient.callback = (tokenResponse: any) => {
-                    if (tokenResponse.error !== undefined) {
-                        reject(new Error(tokenResponse.error));
-                        return;
-                    }
-                    this.accessToken = tokenResponse.access_token;
-                    resolve(this.accessToken!);
-                };
-
-                // Request access token - always prompt for consent for testing
-                this.tokenClient.requestAccessToken({ prompt: 'consent' });
-            });
+            // Check if we're in PWA standalone mode
+            if (this.isStandaloneMode()) {
+                return this.authenticateInStandaloneMode();
+            } else {
+                return this.authenticateWithPopup();
+            }
         } catch (error) {
             throw new Error(`Authentication failed: ${error}`);
         }
+    }
+
+    private authenticateWithPopup(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (!this.tokenClient) {
+                reject(new Error('Token client not initialized'));
+                return;
+            }
+
+            // Set up callback for token response
+            this.tokenClient.callback = (tokenResponse: any) => {
+                if (tokenResponse.error !== undefined) {
+                    reject(new Error(tokenResponse.error));
+                    return;
+                }
+                this.accessToken = tokenResponse.access_token;
+                resolve(this.accessToken!);
+            };
+
+            try {
+                // Request access token - always prompt for consent for testing
+                this.tokenClient.requestAccessToken({ prompt: 'consent' });
+            } catch (error) {
+                // If popup fails, fallback to redirect mode
+                console.warn('Popup authentication failed, falling back to redirect mode:', error);
+                this.authenticateInStandaloneMode().then(resolve).catch(reject);
+            }
+        });
+    }
+
+    private authenticateInStandaloneMode(): Promise<string> {
+        return new Promise((resolve, reject) => {
+            // Store the current resolve/reject functions for the redirect callback
+            (window as any).googleAuthCallback = (tokenResponse: any) => {
+                if (tokenResponse.error !== undefined) {
+                    reject(new Error(tokenResponse.error));
+                    return;
+                }
+                this.accessToken = tokenResponse.access_token;
+                resolve(this.accessToken!);
+            };
+
+            // Build OAuth URL for full window redirect
+            // Use the exact redirect URI that should be configured in Google Cloud Console
+            const redirectUri = window.location.origin + '/';
+            const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.file');
+            const state = Math.random().toString(36).substring(2, 15);
+
+            // Store state for validation
+            sessionStorage.setItem('oauth_state', state);
+
+            console.log('OAuth redirect URI being used:', redirectUri);
+            console.log('Make sure this EXACT URI is configured in Google Cloud Console:');
+            console.log('→', redirectUri);
+
+            // Show popup with redirect URI info for mobile debugging
+            const showDebugInfo = confirm(
+                `OAuth Debug Info:\n\n` +
+                `Redirect URI: ${redirectUri}\n\n` +
+                `Make sure this EXACT URI is configured in your Google Cloud Console under "Authorized redirect URIs".\n\n` +
+                `Click OK to continue with OAuth, or Cancel to abort.`
+            );
+
+            if (!showDebugInfo) {
+                reject(new Error('OAuth cancelled by user'));
+                return;
+            }
+
+            // Check if we're returning from OAuth redirect
+            const hash = window.location.hash;
+            if (hash && hash.includes('access_token')) {
+                const params = new URLSearchParams(hash.substring(1));
+                const accessToken = params.get('access_token');
+                const storedState = sessionStorage.getItem('oauth_state');
+                const returnedState = params.get('state');
+
+                if (accessToken && returnedState === storedState) {
+                    // We're returning from OAuth, resolve immediately
+                    this.accessToken = accessToken;
+                    window.location.hash = '';
+                    sessionStorage.removeItem('oauth_state');
+                    resolve(accessToken);
+                    return;
+                }
+            }
+
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${encodeURIComponent(this.settings.clientId!)}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `scope=${scope}&` +
+                `response_type=token&` +
+                `state=${state}&` +
+                `prompt=consent&` +
+                `include_granted_scopes=true`;
+
+            console.log('Redirecting to OAuth URL:', authUrl);
+
+            // Redirect the entire window to OAuth
+            window.location.href = authUrl;
+        });
     }
 
     async uploadBackup(data: BackupData): Promise<boolean> {

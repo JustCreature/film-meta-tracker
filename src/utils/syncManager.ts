@@ -90,6 +90,64 @@ export class SyncManager {
         }
     }
 
+    async performManualSync(): Promise<{
+        success: boolean;
+        action: 'upload' | 'download' | 'none';
+        message: string;
+    }> {
+        if (!this.settings.googleDrive.enabled) {
+            return {
+                success: false,
+                action: 'none',
+                message: 'Google Drive is not enabled'
+            };
+        }
+
+        try {
+            // For manual sync, let's just upload the current local data
+            const success = await this.syncToCloud();
+            return {
+                success,
+                action: 'upload',
+                message: success ? 'Manual backup completed successfully' : 'Manual backup failed'
+            };
+        } catch (error) {
+            console.error('Manual sync error:', error);
+            return {
+                success: false,
+                action: 'none',
+                message: `Manual sync failed: ${error}`
+            };
+        }
+    }
+
+    async testConnection(): Promise<{
+        success: boolean;
+        message: string;
+    }> {
+        if (!this.googleDriveService || !this.settings.googleDrive.enabled) {
+            return {
+                success: false,
+                message: 'Google Drive is not enabled'
+            };
+        }
+
+        try {
+            // Try to initialize auth and test the connection
+            const success = await this.googleDriveService.initializeAuth();
+            return {
+                success,
+                message: success ? 'Connection test successful' : 'Connection test failed'
+            };
+        } catch (error) {
+            console.error('Connection test error:', error);
+            return {
+                success: false,
+                message: `Connection test failed: ${error}`
+            };
+        }
+    }
+
     async performAutoSync(): Promise<{
         success: boolean;
         action: 'upload' | 'download' | 'none';

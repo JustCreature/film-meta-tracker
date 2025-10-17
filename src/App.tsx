@@ -134,6 +134,63 @@ function App() {
     }
   }, []);
 
+  // Handle OAuth redirect for PWA standalone mode
+  useEffect(() => {
+    const handleOAuthRedirect = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const state = params.get('state');
+        const storedState = sessionStorage.getItem('oauth_state');
+
+        if (accessToken && state === storedState) {
+          // Clear the hash and state
+          window.location.hash = '';
+          sessionStorage.removeItem('oauth_state');
+
+          // Update settings with the new token
+          const newSettings = {
+            ...appState.settings,
+            googleDrive: {
+              ...appState.settings.googleDrive,
+              accessToken: accessToken
+            }
+          };
+
+          storage.saveSettings(newSettings);
+          setAppState(prev => ({ ...prev, settings: newSettings }));
+
+          // Update sync manager
+          if (syncManager) {
+            syncManager.updateSettings(newSettings);
+          }
+
+          // Show settings modal and trigger sync after OAuth success
+          setShowSettings(true);
+
+          // Show success message and trigger sync
+          setTimeout(async () => {
+            try {
+              if (syncManager) {
+                const result = await syncManager.performManualSync();
+                if (result.success) {
+                  alert(`OAuth Success! ${result.message}`);
+                } else {
+                  alert(`OAuth successful, but sync failed: ${result.message}`);
+                }
+              }
+            } catch (error) {
+              alert(`OAuth successful, but sync failed: ${error}`);
+            }
+          }, 1000);
+        }
+      }
+    };
+
+    handleOAuthRedirect();
+  }, [appState.settings, syncManager]);
+
   const handleFilmRollCreated = (filmRoll: FilmRoll) => {
     storage.saveFilmRoll(filmRoll);
     storage.setCurrentFilmRoll(filmRoll);
@@ -280,7 +337,7 @@ function App() {
       throw new Error('Sync manager not initialized');
     }
 
-    const result = await syncManager.performAutoSync();
+    const result = await syncManager.performManualSync();
     if (!result.success) {
       throw new Error(result.message);
     }
